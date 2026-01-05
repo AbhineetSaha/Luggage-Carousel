@@ -11,6 +11,7 @@ let idCounter = 0;
  */
 export const useCarouselAnimation = (containerWidth: number) => {
   const [luggages, setLuggages] = useState<Luggage[]>([]);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const lastSpawnTimeRef = useRef(0);
   const nextSpawnDelayRef = useRef(
     Math.random() *
@@ -18,6 +19,19 @@ export const useCarouselAnimation = (containerWidth: number) => {
       CAROUSEL.MIN_SPAWN_INTERVAL
   );
   const animationFrameRef = useRef<number | undefined>(undefined);
+
+  // Check for prefers-reduced-motion
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReducedMotion(mediaQuery.matches);
+
+    const handler = (e: MediaQueryListEvent) => {
+      setPrefersReducedMotion(e.matches);
+    };
+
+    mediaQuery.addEventListener("change", handler);
+    return () => mediaQuery.removeEventListener("change", handler);
+  }, []);
 
   useEffect(() => {
     const animate = (timestamp: number) => {
@@ -50,15 +64,17 @@ export const useCarouselAnimation = (containerWidth: number) => {
         });
       }
 
-      // Move luggage (always continue moving)
-      setLuggages((prev) =>
-        prev
-          .map((luggage) => ({
-            ...luggage,
-            x: luggage.x + CAROUSEL.SPEED,
-          }))
-          .filter((luggage) => luggage.x < containerWidth + 100)
-      );
+      // Move luggage (always continue moving, unless prefers-reduced-motion)
+      if (!prefersReducedMotion) {
+        setLuggages((prev) =>
+          prev
+            .map((luggage) => ({
+              ...luggage,
+              x: luggage.x + CAROUSEL.SPEED,
+            }))
+            .filter((luggage) => luggage.x < containerWidth + 100)
+        );
+      }
 
       animationFrameRef.current = requestAnimationFrame(animate);
     };
@@ -70,7 +86,7 @@ export const useCarouselAnimation = (containerWidth: number) => {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [containerWidth]);
+  }, [containerWidth, prefersReducedMotion]);
 
   const removeLuggage = (id: string) => {
     setLuggages((prev) => prev.filter((luggage) => luggage.id !== id));

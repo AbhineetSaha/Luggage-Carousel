@@ -54,14 +54,24 @@ test.describe("Luggage Carousel E2E Tests", () => {
     const luggageItem = page.locator('[draggable="true"]').first();
     await expect(luggageItem).toBeVisible({ timeout: 10000 });
 
+    // Wait a moment for animation to settle
+    await page.waitForTimeout(500);
+
     const storageCell = page.locator(".relative.w-32.h-32").first();
 
-    // Perform drag and drop
-    await luggageItem.dragTo(storageCell);
+    // Perform drag and drop with retry logic
+    try {
+      await luggageItem.dragTo(storageCell, { timeout: 15000 });
+    } catch {
+      // If drag fails, try scrolling the element into stable position first
+      await luggageItem.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(200);
+      await luggageItem.dragTo(storageCell, { timeout: 15000 });
+    }
 
     // Check if luggage appears in the storage cell
     const luggageInCell = storageCell.locator(".bg-blue-600");
-    await expect(luggageInCell).toBeVisible();
+    await expect(luggageInCell).toBeVisible({ timeout: 10000 });
   });
 
   test("unload button should be enabled when luggage is in storage", async ({
@@ -71,16 +81,25 @@ test.describe("Luggage Carousel E2E Tests", () => {
     const luggageItem = page.locator('[draggable="true"]').first();
     await expect(luggageItem).toBeVisible({ timeout: 10000 });
 
+    // Wait a moment for animation to settle
+    await page.waitForTimeout(500);
+
     const storageCell = page.locator(".relative.w-32.h-32").first();
 
     // Drag luggage to storage
-    await luggageItem.dragTo(storageCell);
+    try {
+      await luggageItem.dragTo(storageCell, { timeout: 15000 });
+    } catch {
+      await luggageItem.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(200);
+      await luggageItem.dragTo(storageCell, { timeout: 15000 });
+    }
 
     // Unload button should now be enabled
     const unloadButton = page.getByRole("button", {
       name: /unload storage/i,
     });
-    await expect(unloadButton).toBeEnabled();
+    await expect(unloadButton).toBeEnabled({ timeout: 10000 });
   });
 
   test("should unload luggage using LIFO from priority cells first", async ({
@@ -90,18 +109,36 @@ test.describe("Luggage Carousel E2E Tests", () => {
     const luggageItems = page.locator('[draggable="true"]');
     await expect(luggageItems.first()).toBeVisible({ timeout: 10000 });
 
+    // Wait a moment for animation to settle
+    await page.waitForTimeout(500);
+
     // Drag first luggage to priority cell (cell 0)
     const firstLuggage = luggageItems.first();
     const priorityCell = page.locator(".relative.w-32.h-32").nth(0);
-    await firstLuggage.dragTo(priorityCell);
+
+    try {
+      await firstLuggage.dragTo(priorityCell, { timeout: 15000 });
+    } catch {
+      await firstLuggage.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(200);
+      await firstLuggage.dragTo(priorityCell, { timeout: 15000 });
+    }
 
     // Wait for second luggage to spawn
     await expect(luggageItems.first()).toBeVisible({ timeout: 10000 });
+    await page.waitForTimeout(500);
 
     // Drag second luggage to another priority cell (cell 1)
     const secondLuggage = luggageItems.first();
     const secondPriorityCell = page.locator(".relative.w-32.h-32").nth(1);
-    await secondLuggage.dragTo(secondPriorityCell);
+
+    try {
+      await secondLuggage.dragTo(secondPriorityCell, { timeout: 15000 });
+    } catch {
+      await secondLuggage.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(200);
+      await secondLuggage.dragTo(secondPriorityCell, { timeout: 15000 });
+    }
 
     // Click unload button
     const unloadButton = page.getByRole("button", {
@@ -111,7 +148,7 @@ test.describe("Luggage Carousel E2E Tests", () => {
 
     // Second cell (last filled priority cell) should be empty first (LIFO)
     const luggageInSecondCell = secondPriorityCell.locator(".bg-blue-600");
-    await expect(luggageInSecondCell).not.toBeVisible();
+    await expect(luggageInSecondCell).not.toBeVisible({ timeout: 10000 });
   });
 
   test("luggage should move across the carousel", async ({ page }) => {

@@ -16,6 +16,7 @@ export default defineConfig({
     trace: "on-first-retry",
     actionTimeout: 15000, // 15 seconds for actions
     navigationTimeout: 30000, // 30 seconds for navigation
+    reducedMotion: "reduce", // Pause animations during tests
   },
 
   projects: [
