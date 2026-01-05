@@ -20,13 +20,18 @@ export const useCarouselAnimation = (containerWidth: number) => {
   );
   const animationFrameRef = useRef<number | undefined>(undefined);
 
-  // Check for prefers-reduced-motion
+  // Check for prefers-reduced-motion or test environment
   useEffect(() => {
+    // Check for prefers-reduced-motion
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setPrefersReducedMotion(mediaQuery.matches);
+    const isTestEnv =
+      (window as { E2E_TEST?: boolean }).E2E_TEST === true ||
+      navigator.userAgent.includes("Playwright");
+
+    setPrefersReducedMotion(mediaQuery.matches || isTestEnv);
 
     const handler = (e: MediaQueryListEvent) => {
-      setPrefersReducedMotion(e.matches);
+      setPrefersReducedMotion(e.matches || isTestEnv);
     };
 
     mediaQuery.addEventListener("change", handler);
@@ -35,7 +40,10 @@ export const useCarouselAnimation = (containerWidth: number) => {
 
   useEffect(() => {
     const animate = (timestamp: number) => {
-      // Spawn new luggage at random intervals
+      // Check for test environment directly
+      const isTestEnv = (window as { E2E_TEST?: boolean }).E2E_TEST === true;
+
+      // Spawn new luggage at random intervals (allow in test env too)
       if (timestamp - lastSpawnTimeRef.current > nextSpawnDelayRef.current) {
         setLuggages((prev) => {
           // Check if there's enough space from the last spawned luggage
@@ -64,8 +72,8 @@ export const useCarouselAnimation = (containerWidth: number) => {
         });
       }
 
-      // Move luggage (always continue moving, unless prefers-reduced-motion)
-      if (!prefersReducedMotion) {
+      // Move luggage (don't move in test env to keep items stable)
+      if (!isTestEnv && !prefersReducedMotion) {
         setLuggages((prev) =>
           prev
             .map((luggage) => ({
