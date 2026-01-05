@@ -27,7 +27,7 @@ const App = () => {
       setStorageCells((prev) =>
         prev.map((cell) =>
           cell.id === cellId && !cell.luggage
-            ? { ...cell, luggage: draggedLuggage }
+            ? { ...cell, luggage: draggedLuggage, timestamp: Date.now() }
             : cell
         )
       );
@@ -40,29 +40,29 @@ const App = () => {
   // LIFO unload logic: Priority row first, then regular rows
   const handleUnload = useCallback(() => {
     setStorageCells((prev) => {
-      // First, find priority cells with luggage (LIFO - last filled first)
+      // First, find priority cells with luggage (LIFO - most recently added first)
       const priorityCellsWithLuggage = prev
         .map((cell, index) => ({ cell, index }))
         .filter(({ cell }) => cell.isPriority && cell.luggage)
-        .reverse();
+        .sort((a, b) => (b.cell.timestamp || 0) - (a.cell.timestamp || 0));
 
       if (priorityCellsWithLuggage.length > 0) {
         const { index } = priorityCellsWithLuggage[0];
         return prev.map((cell, i) =>
-          i === index ? { ...cell, luggage: null } : cell
+          i === index ? { ...cell, luggage: null, timestamp: undefined } : cell
         );
       }
 
-      // If no priority cells, unload from regular cells (LIFO)
+      // If no priority cells, unload from regular cells (LIFO - most recently added first)
       const regularCellsWithLuggage = prev
         .map((cell, index) => ({ cell, index }))
         .filter(({ cell }) => !cell.isPriority && cell.luggage)
-        .reverse();
+        .sort((a, b) => (b.cell.timestamp || 0) - (a.cell.timestamp || 0));
 
       if (regularCellsWithLuggage.length > 0) {
         const { index } = regularCellsWithLuggage[0];
         return prev.map((cell, i) =>
-          i === index ? { ...cell, luggage: null } : cell
+          i === index ? { ...cell, luggage: null, timestamp: undefined } : cell
         );
       }
 
