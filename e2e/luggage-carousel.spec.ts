@@ -17,10 +17,10 @@ test.describe("Luggage Carousel E2E Tests", () => {
   });
 
   test("should spawn luggage items on the carousel", async ({ page }) => {
-    // Wait for luggage to spawn (up to 3 seconds based on spawn interval)
-    await page.waitForTimeout(3500);
-
+    // Wait for luggage to spawn using a more reliable approach
     const luggageItems = page.locator('[draggable="true"]');
+    await expect(luggageItems.first()).toBeVisible({ timeout: 10000 });
+
     const count = await luggageItems.count();
 
     // Should have at least one luggage spawned
@@ -51,94 +51,83 @@ test.describe("Luggage Carousel E2E Tests", () => {
 
   test("drag and drop luggage to storage cell", async ({ page }) => {
     // Wait for luggage to spawn
-    await page.waitForTimeout(3500);
-
     const luggageItem = page.locator('[draggable="true"]').first();
+    await expect(luggageItem).toBeVisible({ timeout: 10000 });
+
     const storageCell = page.locator(".relative.w-32.h-32").first();
 
-    if ((await luggageItem.count()) > 0) {
-      // Perform drag and drop
-      await luggageItem.dragTo(storageCell);
+    // Perform drag and drop
+    await luggageItem.dragTo(storageCell);
 
-      // Check if luggage appears in the storage cell
-      const luggageInCell = storageCell.locator(".bg-blue-600");
-      await expect(luggageInCell).toBeVisible();
-    }
+    // Check if luggage appears in the storage cell
+    const luggageInCell = storageCell.locator(".bg-blue-600");
+    await expect(luggageInCell).toBeVisible();
   });
 
   test("unload button should be enabled when luggage is in storage", async ({
     page,
   }) => {
     // Wait for luggage to spawn
-    await page.waitForTimeout(3500);
-
     const luggageItem = page.locator('[draggable="true"]').first();
+    await expect(luggageItem).toBeVisible({ timeout: 10000 });
+
     const storageCell = page.locator(".relative.w-32.h-32").first();
 
-    if ((await luggageItem.count()) > 0) {
-      // Drag luggage to storage
-      await luggageItem.dragTo(storageCell);
+    // Drag luggage to storage
+    await luggageItem.dragTo(storageCell);
 
-      // Unload button should now be enabled
-      const unloadButton = page.getByRole("button", {
-        name: /unload storage/i,
-      });
-      await expect(unloadButton).toBeEnabled();
-    }
+    // Unload button should now be enabled
+    const unloadButton = page.getByRole("button", {
+      name: /unload storage/i,
+    });
+    await expect(unloadButton).toBeEnabled();
   });
 
   test("should unload luggage using LIFO from priority cells first", async ({
     page,
   }) => {
-    // Wait for multiple luggage to spawn
-    await page.waitForTimeout(5000);
-
+    // Wait for first luggage to spawn
     const luggageItems = page.locator('[draggable="true"]');
-    const count = await luggageItems.count();
+    await expect(luggageItems.first()).toBeVisible({ timeout: 10000 });
 
-    if (count >= 2) {
-      // Drag first luggage to priority cell (cell 0)
-      const firstLuggage = luggageItems.nth(0);
-      const priorityCell = page.locator(".relative.w-32.h-32").nth(0);
-      await firstLuggage.dragTo(priorityCell);
+    // Drag first luggage to priority cell (cell 0)
+    const firstLuggage = luggageItems.first();
+    const priorityCell = page.locator(".relative.w-32.h-32").nth(0);
+    await firstLuggage.dragTo(priorityCell);
 
-      // Wait for another luggage
-      await page.waitForTimeout(2000);
+    // Wait for second luggage to spawn
+    await expect(luggageItems.first()).toBeVisible({ timeout: 10000 });
 
-      // Drag second luggage to another priority cell (cell 1)
-      const secondLuggage = page.locator('[draggable="true"]').nth(0);
-      const secondPriorityCell = page.locator(".relative.w-32.h-32").nth(1);
-      await secondLuggage.dragTo(secondPriorityCell);
+    // Drag second luggage to another priority cell (cell 1)
+    const secondLuggage = luggageItems.first();
+    const secondPriorityCell = page.locator(".relative.w-32.h-32").nth(1);
+    await secondLuggage.dragTo(secondPriorityCell);
 
-      // Click unload button
-      const unloadButton = page.getByRole("button", {
-        name: /unload storage/i,
-      });
-      await unloadButton.click();
+    // Click unload button
+    const unloadButton = page.getByRole("button", {
+      name: /unload storage/i,
+    });
+    await unloadButton.click();
 
-      // Second cell (last filled priority cell) should be empty first (LIFO)
-      const luggageInSecondCell = secondPriorityCell.locator(".bg-blue-600");
-      await expect(luggageInSecondCell).not.toBeVisible();
-    }
+    // Second cell (last filled priority cell) should be empty first (LIFO)
+    const luggageInSecondCell = secondPriorityCell.locator(".bg-blue-600");
+    await expect(luggageInSecondCell).not.toBeVisible();
   });
 
   test("luggage should move across the carousel", async ({ page }) => {
     // Wait for luggage to spawn
-    await page.waitForTimeout(3500);
-
     const luggageItem = page.locator('[draggable="true"]').first();
+    await expect(luggageItem).toBeVisible({ timeout: 10000 });
 
-    if ((await luggageItem.count()) > 0) {
-      const initialPosition = await luggageItem.boundingBox();
+    const initialPosition = await luggageItem.boundingBox();
 
-      // Wait for animation
-      await page.waitForTimeout(1000);
+    // Wait for animation using a short delay
+    await page.waitForTimeout(500);
 
-      const newPosition = await luggageItem.boundingBox();
+    const newPosition = await luggageItem.boundingBox();
 
-      // X position should have changed
-      expect(newPosition?.x).not.toBe(initialPosition?.x);
-    }
+    // X position should have changed
+    expect(newPosition?.x).not.toBe(initialPosition?.x);
   });
 
   test("should be responsive and render on mobile viewport", async ({

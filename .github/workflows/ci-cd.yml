@@ -75,6 +75,7 @@ jobs:
   e2e-tests:
     name: E2E Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -90,8 +91,13 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      - name: Build application
+        run: npm run build
+
       - name: Run E2E tests
         run: npm run test:e2e
+        env:
+          CI: true
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
